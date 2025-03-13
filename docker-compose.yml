@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # Next.jsアプリケーション
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/image_gallery
+      - S3_ENDPOINT=http://localstack:4566
+      - S3_BUCKET_NAME=image-gallery-local
+      - NODE_ENV=development
+    command: npm run dev
+
+  # PostgreSQLデータベース
+  db:
+    image: postgres:14
+    environment:
+      - POSTGRES_DB=image_gallery
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+
+  # LocalStack (ローカル環境のAWSエミュレーター)
+  localstack:
+    image: localstack/localstack:latest
+    environment:
+      - SERVICES=s3
+      - DEBUG=1
+      - AWS_DEFAULT_REGION=us-east-1
+      - EDGE_PORT=4566
+    ports:
+      - "4566:4566"
+    volumes:
+      - ./localstack:/docker-entrypoint-initaws.d
+      - ./tmp/localstack:/tmp/localstack
+
+  # 初期化用のコンテナ (LocalStackにS3バケットを作成)
+  init-localstack:
+    image: amazon/aws-cli:latest
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+    entrypoint: /bin/sh -c
+    command: >
+      "
+      sleep 10;
+      aws --endpoint-url=http://localstack:4566 s3 mb s3://image-gallery-local;
+      aws --endpoint-url=http://localstack:4566 s3api put-bucket-acl --bucket image-gallery-local --acl public-read;
+      echo 'LocalStack initialized with S3 bucket';
+      "
+    depends_on:
+      - localstack
+
+volumes:
+  postgres_data:
