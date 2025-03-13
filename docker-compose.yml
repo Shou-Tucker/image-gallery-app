@@ -29,23 +29,28 @@ services:
   # PostgreSQLデータベース
   db:
     image: postgres:14
+    restart: unless-stopped
     environment:
       - POSTGRES_DB=image_gallery
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+      # リソース使用量を抑える設定
+      - POSTGRES_INITDB_ARGS=--data-checksums
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d
+      - ./db/postgresql.conf:/etc/postgresql/postgresql.conf
+    tmpfs:
+      - /tmp
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
-    # ディスク容量不足エラー対策
-    tmpfs:
-      - /tmp
 
   # LocalStack (ローカル環境のAWSエミュレーター)
   localstack:
@@ -92,4 +97,6 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
   localstack_tmp:
+    driver: local
