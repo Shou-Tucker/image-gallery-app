@@ -1,6 +1,7 @@
-#!/bin/bash
-
+#!/bin/sh
 # LocalStackのS3バケット初期化スクリプト
+set -e
+
 echo "LocalStackの初期化を開始します..."
 
 # 必要な環境変数を設定
@@ -14,7 +15,8 @@ ENDPOINT_URL=http://${LOCALSTACK_HOST}:4566
 echo "LocalStackが起動するまで待機しています..."
 max_retries=30
 retry_count=0
-until $(curl --silent --fail ${ENDPOINT_URL}/health &>/dev/null); do
+
+until curl --silent --fail ${ENDPOINT_URL}/health >/dev/null 2>&1; do
   retry_count=$((retry_count+1))
   if [ $retry_count -eq $max_retries ]; then
     echo "LocalStackの起動待機がタイムアウトしました"
