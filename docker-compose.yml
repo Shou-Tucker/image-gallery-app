@@ -24,7 +24,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_REGION=us-east-1
       - NODE_ENV=development
-    command: npm run dev
+    command: sh ./startup.sh
 
   # PostgreSQLデータベース
   db:
