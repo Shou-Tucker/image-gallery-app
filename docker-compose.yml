@@ -12,11 +12,17 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      init-localstack:
+        condition: service_completed_successfully
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/image_gallery
       - S3_ENDPOINT=http://localstack:4566
       - S3_BUCKET_NAME=image-gallery-local
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_REGION=us-east-1
       - NODE_ENV=development
     command: npm run dev
 
@@ -32,6 +38,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # LocalStack (ローカル環境のAWSエミュレーター)
   localstack:
@@ -41,12 +52,17 @@ services:
       - DEBUG=1
       - AWS_DEFAULT_REGION=us-east-1
       - EDGE_PORT=4566
-      - TMPDIR=/tmp/localstack-tmp # 新しいテンポラリディレクトリを指定
+      - TMPDIR=/tmp/localstack-tmp
     ports:
       - "4566:4566"
     volumes:
       - ./localstack:/docker-entrypoint-initaws.d
-      - localstack_tmp:/tmp/localstack-tmp # 新しいテンポラリディレクトリをマウント
+      - localstack_tmp:/tmp/localstack-tmp
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # 初期化用のコンテナ (LocalStackにS3バケットを作成)
   init-localstack:
@@ -58,14 +74,20 @@ services:
     entrypoint: /bin/sh -c
     command: >
       "
-      sleep 10;
-      aws --endpoint-url=http://localstack:4566 s3 mb s3://image-gallery-local;
-      aws --endpoint-url=http://localstack:4566 s3api put-bucket-acl --bucket image-gallery-local --acl public-read;
-      echo 'LocalStack initialized with S3 bucket';
+      echo 'Waiting for LocalStack to be ready...'
+      while ! curl -s http://localstack:4566/_localstack/health | grep -q '\"s3\":\"running\"'; do
+        echo 'Waiting for LocalStack S3...'
+        sleep 2
+      done
+      echo 'LocalStack S3 is ready. Creating bucket...'
+      aws --endpoint-url=http://localstack:4566 s3 mb s3://image-gallery-local
+      aws --endpoint-url=http://localstack:4566 s3api put-bucket-acl --bucket image-gallery-local --acl public-read
+      echo 'LocalStack initialized with S3 bucket'
       "
     depends_on:
-      - localstack
+      localstack:
+        condition: service_healthy
 
 volumes:
   postgres_data:
-  localstack_tmp: # 新しいボリュームを追加
+  localstack_tmp:
