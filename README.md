@@ -30,7 +30,7 @@
 
 ## セットアップ手順
 
-### ローカル開発環境
+### ローカル開発環境の起動
 
 ```bash
 # リポジトリのクローン
@@ -40,12 +40,63 @@ cd image-gallery-app
 # 環境変数の設定
 cp app/.env.example app/.env.local
 
+# (オプション) クリーンな状態から始める場合
+docker-compose down -v
+
 # Dockerコンテナの起動
 docker-compose up -d
 
-# アプリケーションにアクセス
+# ログの確認 (デバッグに有用)
+docker-compose logs -f
+
+# アプリケーションのアクセス
 open http://localhost:3000
 ```
+
+### ローカル開発環境の確認
+
+アプリケーションが起動したら、以下の機能をテストできます：
+
+1. 画像のアップロード：「アップロード」ボタンをクリックし、画像を選択、タイトルを入力
+2. 画像の一覧表示：ホームページで全ての画像が表示されます
+3. 画像の詳細表示：画像カードをクリックして詳細を確認
+4. 画像の削除：詳細ページから削除ボタンを使用
+
+### トラブルシューティング
+
+コンテナが正常に起動しない場合は、以下の手順を試してください：
+
+1. **Next.jsアプリケーションのエラー確認**
+   ```bash
+   docker-compose logs app
+   ```
+
+2. **LocalStackのエラー確認**
+   ```bash
+   docker-compose logs localstack
+   ```
+   
+   LocalStackのエラーが続く場合は、volumeを削除して再試行：
+   ```bash
+   docker volume rm image-gallery-app_localstack_tmp
+   docker-compose up -d
+   ```
+
+3. **データベース接続の確認**
+   ```bash
+   docker-compose exec db psql -U postgres -d image_gallery -c "\dt"
+   ```
+
+4. **全てのコンテナとデータをリセット**
+   ```bash
+   docker-compose down -v
+   docker-compose up -d
+   ```
+
+5. **手動でマイグレーションを実行**
+   ```bash
+   docker-compose exec app npx prisma migrate deploy
+   ```
 
 ### Terraformによるデプロイ
 
@@ -77,7 +128,7 @@ terraform apply -var-file=prod.tfvars
 │   ├── pages/            # ページコンポーネント
 │   │   ├── api/          # APIエンドポイント
 │   │   └── images/       # 画像関連ページ
-│   ├── prisma/           # データベース設定
+│   ├── prisma/           # データベース設定とマイグレーション
 │   └── styles/           # CSSスタイル
 ├── db/                   # データベース初期化スクリプト
 ├── docker-compose.yml    # Docker設定
