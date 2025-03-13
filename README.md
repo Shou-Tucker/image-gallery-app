@@ -2,30 +2,6 @@
 
 画像アップロード・表示機能を持つWebアプリケーション
 
-## 重要: 起動時の問題が発生している場合
-
-何度も起動に失敗している場合は、以下の**安全なセットアップ**コマンドを試してください：
-
-```bash
-# 最も安全な方法でセットアップ（完全クリーンアップ後）
-make safe-setup
-```
-
-これでも問題が解決しない場合は、**最終手段**として以下を実行してください：
-
-```bash
-# Dockerの環境を完全に初期化（Docker関連のすべてが消去されます！）
-make nuclear-option
-
-# Dockerデーモンを再起動
-# Linux:
-sudo systemctl restart docker
-# macOS: Docker Desktopを再起動
-
-# 再セットアップ
-make setup
-```
-
 ## 機能
 
 - 画像のアップロード（タイトルや説明を付けて保存）
@@ -43,99 +19,203 @@ make setup
 
 ## セットアップ手順
 
-### 1. リポジトリのクローン
+### 1. 事前準備
+
+以下のソフトウェアをインストールしてください：
+- [Git](https://git-scm.com/downloads)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/Mac)、または [Docker Engine](https://docs.docker.com/engine/install/) (Linux)
+
+### 2. リポジトリのクローン
 
 ```bash
 git clone https://github.com/Shou-Tucker/image-gallery-app.git
 cd image-gallery-app
 ```
 
-### 2. 初回セットアップ
+### 3. OSごとのセットアップ方法
 
-```bash
-# 以前のDockerリソースをクリーンアップしてから起動（推奨）
-make safe-setup
+#### Windows
 
-# または単純なセットアップ（問題がなければこちらでOK）
-make setup
+```powershell
+# PowerShellを管理者権限で実行
+
+# 既存のDockerリソースをクリーンアップ
+docker-compose down -v
+docker volume prune -f
+docker system prune -af
+
+# スクリプトに実行権限付与（WSL環境の場合）
+# WSLを使用している場合は以下を実行
+# chmod +x app/startup.sh
+# chmod +x localstack/init-s3.sh
+
+# 環境変数ファイルをコピー
+copy app\.env.example app\.env.local
+
+# Dockerコンテナの起動
+docker-compose up -d
+
+# ブラウザでアクセス
+start http://localhost:3000
 ```
 
-### 3. アプリケーションの確認
-
-ブラウザで http://localhost:3000 にアクセスしてください。
-
-### 4. 便利なコマンド
+#### macOS
 
 ```bash
-# ログの確認
-make logs
+# ターミナルで実行
 
-# アプリのログのみ表示
-make app-logs
+# 既存のDockerリソースをクリーンアップ
+docker-compose down -v
+docker volume prune -f
+docker system prune -af
 
-# データベースのログ確認
-make db-logs
+# スクリプトに実行権限付与
+chmod +x app/startup.sh
+chmod +x localstack/init-s3.sh
 
-# LocalStackのログ確認
-make localstack-logs
+# 環境変数ファイルをコピー
+cp app/.env.example app/.env.local
 
-# 環境をリセット（ボリュームもクリア）
-make reset
+# Dockerコンテナの起動
+docker-compose up -d
 
-# アプリケーションの停止
-make stop
+# ブラウザでアクセス
+open http://localhost:3000
+```
 
-# Dockerの使用状況確認
-make docker-info
+#### Linux
+
+```bash
+# ターミナルで実行
+
+# 既存のDockerリソースをクリーンアップ
+sudo docker-compose down -v
+sudo docker volume prune -f
+sudo docker system prune -af
+
+# スクリプトに実行権限付与
+chmod +x app/startup.sh
+chmod +x localstack/init-s3.sh
+
+# 環境変数ファイルをコピー
+cp app/.env.example app/.env.local
+
+# Dockerコンテナの起動
+sudo docker-compose up -d
+
+# ブラウザでアクセス
+xdg-open http://localhost:3000 # または好みのブラウザで localhost:3000 にアクセス
+```
+
+### 4. Make コマンドを使ったセットアップ (Linux/macOS)
+
+Linux や macOS では、以下の Make コマンドも使用できます：
+
+```bash
+# 完全クリーンアップしてからセットアップ（推奨）
+make safe-setup
+
+# または単純なセットアップ
+make setup
 ```
 
 ## トラブルシューティング
 
-### ディレクトリが空でないというエラー
+### Windows 環境での問題
 
-```
-initdb: error: directory "/var/lib/postgresql/data/pgdata" exists but is not empty
+#### Docker Volume の問題
+
+```powershell
+# PowerShellを管理者権限で実行
+docker-compose down -v
+docker volume prune -f
+docker system prune -af
+
+# 一時的にイメージも削除する場合
+docker rmi $(docker images -a -q)
+
+# Docker Desktop を再起動
+# スタートメニューからDocker Desktopを再起動
+
+# 再度起動
+docker-compose up -d
 ```
 
-このエラーが表示される場合：
+#### WSL2 上での問題
+
+WSL2 を使用している場合、以下のコマンドを試してください：
 
 ```bash
-# すべてのコンテナとボリュームを削除
-make purge
+# WSL2のターミナルで実行
+sudo chmod +x app/startup.sh
+sudo chmod +x localstack/init-s3.sh
 
-# 再セットアップ
-make setup
+# Dockerデーモンの再起動
+sudo service docker restart
+
+# 再度起動
+docker-compose up -d
 ```
 
-### ディスク容量不足エラー
+### macOS環境での問題
 
-```
-No space left on device
-```
-
-このエラーが表示される場合：
+#### ディスク容量不足
 
 ```bash
-# 強力なクリーンアップ
-make nuclear-option
+# Docker Desktopの設定を開き、ディスクイメージサイズを増やす
+# または、以下のコマンドでクリーンアップ
+docker system prune -af --volumes
+rm -rf ~/Library/Containers/com.docker.docker/Data/vms/*
 
-# Dockerを再起動
-# (システムによって異なる方法)
-
-# 再セットアップ
-make setup
+# Docker Desktopを再起動後、再度実行
+docker-compose up -d
 ```
 
-### LocalStackの初期化エラー
+### Linux環境での問題
 
-初期化スクリプトに問題がある場合：
+#### 権限の問題
 
 ```bash
-# スクリプトに実行権限を付与
-chmod +x localstack/init-s3.sh
+# Docker グループにユーザーを追加（sudoなしでDockerを使用可能に）
+sudo usermod -aG docker $USER
+# 一度ログアウトして再ログイン
 
-# 再起動
-make reset
+# 再度実行
+docker-compose up -d
+```
+
+#### ディレクトリが空でないエラー
+
+```bash
+sudo docker-compose down -v
+sudo rm -rf /var/lib/docker/volumes/*
+sudo systemctl restart docker
+docker-compose up -d
+```
+
+## ログの確認
+
+```bash
+# すべてのログを表示
+docker-compose logs -f
+
+# 特定のサービスのログを確認
+docker-compose logs -f app    # アプリケーション
+docker-compose logs -f db     # データベース
+docker-compose logs -f localstack  # LocalStack
+```
+
+## Dockerコンテナの状態確認
+
+```bash
+# コンテナの状態を確認
+docker-compose ps
+
+# ボリュームの確認
+docker volume ls
+
+# Dockerシステムの状態確認
+docker system df
 ```
 
 ## クラウド環境へのデプロイ (Terraform)
@@ -173,6 +253,6 @@ terraform apply -var-file=prod.tfvars
 ├── db/                   # データベース初期化スクリプト
 ├── docker-compose.yml    # Docker設定
 ├── localstack/           # ローカルAWS環境設定
-├── Makefile              # 便利なコマンド集
+├── Makefile              # 便利なコマンド集（Linux/macOS用）
 └── terraform/            # インフラ設定
 ```
