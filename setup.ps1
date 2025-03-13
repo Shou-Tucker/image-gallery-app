@@ -7,8 +7,7 @@ Write-Host "画像ギャラリーアプリケーションのセットアップ�
 try {
     docker info > $null
     Write-Host "Docker が起動しています" -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Host "エラー: Docker が起動していないか、インストールされていません" -ForegroundColor Red
     Write-Host "Docker Desktop をインストールして起動してください: https://www.docker.com/products/docker-desktop/" -ForegroundColor Yellow
     exit 1
