@@ -1,0 +1,34 @@
+// Prismaスキーマファイル
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 画像モデル
+model Image {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  url         String
+  key         String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // タグとの関連付け（多対多）
+  tags        Tag[]    @relation("ImageToTag")
+}
+
+// タグモデル
+model Tag {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 画像との関連付け（多対多）
+  images      Image[]  @relation("ImageToTag")
+}
