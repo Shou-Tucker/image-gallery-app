@@ -2,6 +2,30 @@
 
 画像アップロード・表示機能を持つWebアプリケーション
 
+## 重要: 起動時の問題が発生している場合
+
+何度も起動に失敗している場合は、以下の**安全なセットアップ**コマンドを試してください：
+
+```bash
+# 最も安全な方法でセットアップ（完全クリーンアップ後）
+make safe-setup
+```
+
+これでも問題が解決しない場合は、**最終手段**として以下を実行してください：
+
+```bash
+# Dockerの環境を完全に初期化（Docker関連のすべてが消去されます！）
+make nuclear-option
+
+# Dockerデーモンを再起動
+# Linux:
+sudo systemctl restart docker
+# macOS: Docker Desktopを再起動
+
+# 再セットアップ
+make setup
+```
+
 ## 機能
 
 - 画像のアップロード（タイトルや説明を付けて保存）
@@ -17,50 +41,31 @@
 - Terraform
 - Docker
 
-## AWS構成
-
-- Lightsail（Next.jsアプリ、PostgreSQL）
-- S3（画像ストレージ）
-
-## 環境
-
-- ローカル開発環境
-- 開発環境（クラウド）
-- 本番環境（クラウド）
-
-## ディスク容量の問題に注意
-
-このアプリケーションを実行する前に、少なくとも **2GB** の空き容量があることを確認してください。特にDockerボリュームのために十分な空き容量が必要です。ディスク容量不足エラーが発生した場合は、以下の手順を実行してください：
-
-```bash
-# Dockerのクリーンアップ
-docker system prune -af
-docker volume prune -f
-
-# 手順1でも解決しない場合はDockerを再起動
-# (システムによって異なりますが、例えばLinuxでは以下のコマンド)
-sudo systemctl restart docker
-```
-
 ## セットアップ手順
 
-### 簡単なセットアップ (推奨)
-
-Makefileを使用すると、ワンコマンドでセットアップできます：
+### 1. リポジトリのクローン
 
 ```bash
-# リポジトリのクローン
 git clone https://github.com/Shou-Tucker/image-gallery-app.git
 cd image-gallery-app
-
-# セットアップと起動（実行権限設定と環境変数設定も自動で行います）
-make setup
-
-# ブラウザでアクセス
-open http://localhost:3000
 ```
 
-その他の便利なコマンド：
+### 2. 初回セットアップ
+
+```bash
+# 以前のDockerリソースをクリーンアップしてから起動（推奨）
+make safe-setup
+
+# または単純なセットアップ（問題がなければこちらでOK）
+make setup
+```
+
+### 3. アプリケーションの確認
+
+ブラウザで http://localhost:3000 にアクセスしてください。
+
+### 4. 便利なコマンド
+
 ```bash
 # ログの確認
 make logs
@@ -68,97 +73,72 @@ make logs
 # アプリのログのみ表示
 make app-logs
 
+# データベースのログ確認
+make db-logs
+
+# LocalStackのログ確認
+make localstack-logs
+
 # 環境をリセット（ボリュームもクリア）
 make reset
 
 # アプリケーションの停止
 make stop
+
+# Dockerの使用状況確認
+make docker-info
 ```
 
-### 手動セットアップ
+## トラブルシューティング
+
+### ディレクトリが空でないというエラー
+
+```
+initdb: error: directory "/var/lib/postgresql/data/pgdata" exists but is not empty
+```
+
+このエラーが表示される場合：
 
 ```bash
-# リポジトリのクローン
-git clone https://github.com/Shou-Tucker/image-gallery-app.git
-cd image-gallery-app
+# すべてのコンテナとボリュームを削除
+make purge
 
-# 環境変数の設定
-cp app/.env.example app/.env.local
-
-# スクリプトに実行権限を付与
-chmod +x app/startup.sh
-
-# クリーンな状態から始める（重要: 前回の実行でディスク容量エラーが出た場合）
-docker-compose down -v
-docker volume prune -f
-
-# Dockerコンテナの起動
-docker-compose up -d
-
-# ログの確認 (デバッグに有用)
-docker-compose logs -f
-
-# アプリケーションのアクセス
-open http://localhost:3000
+# 再セットアップ
+make setup
 ```
 
-### ローカル開発環境の確認
+### ディスク容量不足エラー
 
-アプリケーションが起動したら、以下の機能をテストできます：
+```
+No space left on device
+```
 
-1. 画像のアップロード：「アップロード」ボタンをクリックし、画像を選択、タイトルを入力
-2. 画像の一覧表示：ホームページで全ての画像が表示されます
-3. 画像の詳細表示：画像カードをクリックして詳細を確認
-4. 画像の削除：詳細ページから削除ボタンを使用
+このエラーが表示される場合：
 
-### トラブルシューティング
+```bash
+# 強力なクリーンアップ
+make nuclear-option
 
-コンテナが正常に起動しない場合は、以下の手順を試してください：
+# Dockerを再起動
+# (システムによって異なる方法)
 
-1. **ディスク容量の確認**
-   ```bash
-   # ディスク使用量の確認
-   df -h
-   
-   # Dockerの使用量を確認
-   docker system df
-   ```
+# 再セットアップ
+make setup
+```
 
-2. **PostgreSQLエラー「No space left on device」の対処**
-   ```bash
-   # 全てのコンテナとボリュームを削除
-   docker-compose down -v
-   docker volume prune -f
-   docker system prune -af
-   
-   # Dockerを再起動
-   sudo systemctl restart docker  # Linuxの場合
-   # macOSの場合はDocker Desktopを再起動
-   ```
+### LocalStackの初期化エラー
 
-3. **起動スクリプトに実行権限があることを確認**
-   ```bash
-   chmod +x app/startup.sh
-   ```
+初期化スクリプトに問題がある場合：
 
-4. **各サービスのログを確認**
-   ```bash
-   # アプリケーションのログ
-   docker-compose logs app
-   
-   # データベースのログ
-   docker-compose logs db
-   
-   # LocalStackのログ
-   docker-compose logs localstack
-   ```
+```bash
+# スクリプトに実行権限を付与
+chmod +x localstack/init-s3.sh
 
-5. **データベース接続の確認**
-   ```bash
-   docker-compose exec db psql -U postgres -d image_gallery -c "\dt"
-   ```
+# 再起動
+make reset
+```
 
-### Terraformによるデプロイ
+## クラウド環境へのデプロイ (Terraform)
 
 ```bash
 cd terraform
