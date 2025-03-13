@@ -30,7 +30,38 @@
 
 ## セットアップ手順
 
-### ローカル開発環境の起動
+### 簡単なセットアップ (推奨)
+
+Makefileを使用すると、ワンコマンドでセットアップできます：
+
+```bash
+# リポジトリのクローン
+git clone https://github.com/Shou-Tucker/image-gallery-app.git
+cd image-gallery-app
+
+# セットアップと起動（実行権限設定と環境変数設定も自動で行います）
+make setup
+
+# ブラウザでアクセス
+open http://localhost:3000
+```
+
+その他の便利なコマンド：
+```bash
+# ログの確認
+make logs
+
+# アプリのログのみ表示
+make app-logs
+
+# 環境をリセット（ボリュームもクリア）
+make reset
+
+# アプリケーションの停止
+make stop
+```
+
+### 手動セットアップ
 
 ```bash
 # リポジトリのクローン
@@ -39,6 +70,9 @@ cd image-gallery-app
 
 # 環境変数の設定
 cp app/.env.example app/.env.local
+
+# スクリプトに実行権限を付与
+chmod +x app/startup.sh
 
 # (オプション) クリーンな状態から始める場合
 docker-compose down -v
@@ -66,37 +100,38 @@ open http://localhost:3000
 
 コンテナが正常に起動しない場合は、以下の手順を試してください：
 
-1. **Next.jsアプリケーションのエラー確認**
+1. **起動スクリプトに実行権限があることを確認**
    ```bash
-   docker-compose logs app
+   chmod +x app/startup.sh
    ```
 
-2. **LocalStackのエラー確認**
+2. **ディスク容量不足エラーに対処**
    ```bash
+   # Dockerボリュームを削除してクリーン状態から始める
+   docker-compose down -v
+   docker volume prune -f
+   ```
+
+3. **各サービスのログを確認**
+   ```bash
+   # アプリケーションのログ
+   docker-compose logs app
+   
+   # データベースのログ
+   docker-compose logs db
+   
+   # LocalStackのログ
    docker-compose logs localstack
    ```
-   
-   LocalStackのエラーが続く場合は、volumeを削除して再試行：
-   ```bash
-   docker volume rm image-gallery-app_localstack_tmp
-   docker-compose up -d
-   ```
 
-3. **データベース接続の確認**
+4. **データベース接続の確認**
    ```bash
    docker-compose exec db psql -U postgres -d image_gallery -c "\dt"
    ```
 
-4. **全てのコンテナとデータをリセット**
-   ```bash
-   docker-compose down -v
-   docker-compose up -d
-   ```
-
-5. **手動でマイグレーションを実行**
-   ```bash
-   docker-compose exec app npx prisma migrate deploy
-   ```
+5. **開発環境に合わせた構成の調整**
+   * PostgreSQLの設定がディスク使用量を最小化するよう調整済みです
+   * 必要に応じて `db/postgresql.conf` の値を調整してください
 
 ### Terraformによるデプロイ
 
@@ -133,5 +168,6 @@ terraform apply -var-file=prod.tfvars
 ├── db/                   # データベース初期化スクリプト
 ├── docker-compose.yml    # Docker設定
 ├── localstack/           # ローカルAWS環境設定
+├── Makefile              # 便利なコマンド集
 └── terraform/            # インフラ設定
 ```
