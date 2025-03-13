@@ -26,26 +26,23 @@ services:
       - NODE_ENV=development
     command: sh ./startup.sh
 
-  # PostgreSQLデータベース
+  # PostgreSQLデータベース (シンプル構成)
   db:
-    image: postgres:14
+    image: postgres:14-alpine
     restart: unless-stopped
     environment:
       - POSTGRES_DB=image_gallery
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      # リソース使用量を抑える設定
-      - POSTGRES_INITDB_ARGS=--data-checksums
-      - POSTGRES_HOST_AUTH_METHOD=trust
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    command: postgres -c shared_buffers=128MB -c max_connections=50
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d
-      - ./db/postgresql.conf:/etc/postgresql/postgresql.conf
     tmpfs:
-      - /tmp
+      - /var/lib/postgresql/data/pgdata/pg_wal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
