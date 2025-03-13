@@ -32,7 +32,33 @@ git clone https://github.com/Shou-Tucker/image-gallery-app.git
 cd image-gallery-app
 ```
 
-### 3. OSごとのセットアップ方法
+### 3. 簡単セットアップ (推奨)
+
+**各OS用のセットアップスクリプトを用意しています**：
+
+#### Windows
+PowerShellで以下を実行:
+```powershell
+# PowerShellを管理者権限で起動することを推奨
+.\setup.ps1
+```
+
+#### macOS / Linux
+ターミナルで以下を実行:
+```bash
+# 実行権限を付与してから実行
+chmod +x setup.sh
+./setup.sh
+```
+
+これらのスクリプトは以下の処理を自動的に行います：
+- Dockerの起動確認
+- 既存のリソースのクリーンアップ
+- 環境変数ファイルの設定
+- Dockerコンテナの起動
+- セットアップ状態の確認
+
+### 4. 手動セットアップ
 
 #### Windows
 
@@ -43,11 +69,6 @@ cd image-gallery-app
 docker-compose down -v
 docker volume prune -f
 docker system prune -af
-
-# スクリプトに実行権限付与（WSL環境の場合）
-# WSLを使用している場合は以下を実行
-# chmod +x app/startup.sh
-# chmod +x localstack/init-s3.sh
 
 # 環境変数ファイルをコピー
 copy app\.env.example app\.env.local
@@ -107,7 +128,7 @@ sudo docker-compose up -d
 xdg-open http://localhost:3000 # または好みのブラウザで localhost:3000 にアクセス
 ```
 
-### 4. Make コマンドを使ったセットアップ (Linux/macOS)
+### 5. Make コマンドを使ったセットアップ (Linux/macOS)
 
 Linux や macOS では、以下の Make コマンドも使用できます：
 
@@ -130,9 +151,6 @@ make setup
 docker-compose down -v
 docker volume prune -f
 docker system prune -af
-
-# 一時的にイメージも削除する場合
-docker rmi $(docker images -a -q)
 
 # Docker Desktop を再起動
 # スタートメニューからDocker Desktopを再起動
@@ -254,5 +272,7 @@ terraform apply -var-file=prod.tfvars
 ├── docker-compose.yml    # Docker設定
 ├── localstack/           # ローカルAWS環境設定
 ├── Makefile              # 便利なコマンド集（Linux/macOS用）
+├── setup.ps1             # Windows用セットアップスクリプト
+├── setup.sh              # macOS/Linux用セットアップスクリプト
 └── terraform/            # インフラ設定
 ```
