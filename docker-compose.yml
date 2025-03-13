@@ -43,6 +43,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    # ディスク容量不足エラー対策
+    tmpfs:
+      - /tmp
 
   # LocalStack (ローカル環境のAWSエミュレーター)
   localstack:
@@ -71,19 +74,18 @@ services:
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
-    entrypoint: /bin/sh -c
     command: >
-      "
-      echo 'Waiting for LocalStack to be ready...'
-      while ! curl -s http://localstack:4566/_localstack/health | grep -q '\"s3\":\"running\"'; do
-        echo 'Waiting for LocalStack S3...'
-        sleep 2
-      done
-      echo 'LocalStack S3 is ready. Creating bucket...'
-      aws --endpoint-url=http://localstack:4566 s3 mb s3://image-gallery-local
-      aws --endpoint-url=http://localstack:4566 s3api put-bucket-acl --bucket image-gallery-local --acl public-read
-      echo 'LocalStack initialized with S3 bucket'
-      "
+      /bin/sh -c '
+      echo "Waiting for LocalStack to be ready...";
+      while ! curl -s http://localstack:4566/_localstack/health | grep -q "\"s3\":\"running\""; do
+        echo "Waiting for LocalStack S3...";
+        sleep 2;
+      done;
+      echo "LocalStack S3 is ready. Creating bucket...";
+      aws --endpoint-url=http://localstack:4566 s3 mb s3://image-gallery-local;
+      aws --endpoint-url=http://localstack:4566 s3api put-bucket-acl --bucket image-gallery-local --acl public-read;
+      echo "LocalStack initialized with S3 bucket";
+      '
     depends_on:
       localstack:
         condition: service_healthy
