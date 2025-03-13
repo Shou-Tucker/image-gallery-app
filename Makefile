@@ -1,4 +1,4 @@
-.PHONY: setup start stop reset clean logs
+.PHONY: setup start stop reset clean logs purge docker-clean
 
 # セットアップと環境起動
 setup:
@@ -6,6 +6,7 @@ setup:
 	chmod +x app/startup.sh
 	cp -n app/.env.example app/.env.local || true
 	docker-compose down -v
+	docker volume prune -f || true
 	docker-compose up -d
 	@echo "セットアップが完了しました！http://localhost:3000 にアクセスしてください。"
 
@@ -21,12 +22,30 @@ stop:
 reset:
 	docker-compose down -v
 	chmod +x app/startup.sh
+	docker volume prune -f || true
 	docker-compose up -d
 
 # 完全にクリーンアップ
 clean:
 	docker-compose down -v
-	docker system prune -f
+	docker volume prune -f
+	docker system prune -f --volumes
+
+# ディスク容量エラー解決のための強制クリーンアップ
+purge:
+	@echo "Dockerの全リソースを強制的にクリーンアップしています..."
+	docker-compose down -v || true
+	docker volume prune -f || true
+	docker system prune -af || true
+	@echo "すべてのDockerリソースをクリーンアップしました。"
+	@echo "必要であればDockerを再起動し、'make setup'で再度セットアップしてください。"
+
+# Dockerシステム情報の表示
+docker-info:
+	@echo "Dockerシステム情報:"
+	docker system df
+	@echo "\nディスク使用量:"
+	df -h
 
 # ログの表示
 logs:
