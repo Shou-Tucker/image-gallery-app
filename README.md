@@ -28,6 +28,20 @@
 - 開発環境（クラウド）
 - 本番環境（クラウド）
 
+## ディスク容量の問題に注意
+
+このアプリケーションを実行する前に、少なくとも **2GB** の空き容量があることを確認してください。特にDockerボリュームのために十分な空き容量が必要です。ディスク容量不足エラーが発生した場合は、以下の手順を実行してください：
+
+```bash
+# Dockerのクリーンアップ
+docker system prune -af
+docker volume prune -f
+
+# 手順1でも解決しない場合はDockerを再起動
+# (システムによって異なりますが、例えばLinuxでは以下のコマンド)
+sudo systemctl restart docker
+```
+
 ## セットアップ手順
 
 ### 簡単なセットアップ (推奨)
@@ -74,8 +88,9 @@ cp app/.env.example app/.env.local
 # スクリプトに実行権限を付与
 chmod +x app/startup.sh
 
-# (オプション) クリーンな状態から始める場合
+# クリーンな状態から始める（重要: 前回の実行でディスク容量エラーが出た場合）
 docker-compose down -v
+docker volume prune -f
 
 # Dockerコンテナの起動
 docker-compose up -d
@@ -100,19 +115,33 @@ open http://localhost:3000
 
 コンテナが正常に起動しない場合は、以下の手順を試してください：
 
-1. **起動スクリプトに実行権限があることを確認**
+1. **ディスク容量の確認**
+   ```bash
+   # ディスク使用量の確認
+   df -h
+   
+   # Dockerの使用量を確認
+   docker system df
+   ```
+
+2. **PostgreSQLエラー「No space left on device」の対処**
+   ```bash
+   # 全てのコンテナとボリュームを削除
+   docker-compose down -v
+   docker volume prune -f
+   docker system prune -af
+   
+   # Dockerを再起動
+   sudo systemctl restart docker  # Linuxの場合
+   # macOSの場合はDocker Desktopを再起動
+   ```
+
+3. **起動スクリプトに実行権限があることを確認**
    ```bash
    chmod +x app/startup.sh
    ```
 
-2. **ディスク容量不足エラーに対処**
-   ```bash
-   # Dockerボリュームを削除してクリーン状態から始める
-   docker-compose down -v
-   docker volume prune -f
-   ```
-
-3. **各サービスのログを確認**
+4. **各サービスのログを確認**
    ```bash
    # アプリケーションのログ
    docker-compose logs app
@@ -124,14 +153,10 @@ open http://localhost:3000
    docker-compose logs localstack
    ```
 
-4. **データベース接続の確認**
+5. **データベース接続の確認**
    ```bash
    docker-compose exec db psql -U postgres -d image_gallery -c "\dt"
    ```
-
-5. **開発環境に合わせた構成の調整**
-   * PostgreSQLの設定がディスク使用量を最小化するよう調整済みです
-   * 必要に応じて `db/postgresql.conf` の値を調整してください
 
 ### Terraformによるデプロイ
 
