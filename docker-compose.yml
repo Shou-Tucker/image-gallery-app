@@ -12,10 +12,8 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      db:
-        condition: service_healthy
-      init-localstack:
-        condition: service_completed_successfully
+      - db
+      - localstack
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/image_gallery
       - S3_ENDPOINT=http://localstack:4566
@@ -29,20 +27,19 @@ services:
   # PostgreSQLデータベース (シンプル構成)
   db:
     image: postgres:14-alpine
-    restart: unless-stopped
+    restart: always
     environment:
       - POSTGRES_DB=image_gallery
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - PGDATA=/var/lib/postgresql/data/pgdata
-    command: postgres -c shared_buffers=128MB -c max_connections=50
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d
     tmpfs:
-      - /var/lib/postgresql/data/pgdata/pg_wal
+      - /tmp
+      - /var/run/postgresql
+    command: postgres -c shared_buffers=128MB -c max_connections=10 -c fsync=off -c synchronous_commit=off -c full_page_writes=off
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -57,12 +54,10 @@ services:
       - DEBUG=1
       - AWS_DEFAULT_REGION=us-east-1
       - EDGE_PORT=4566
-      - TMPDIR=/tmp/localstack-tmp
     ports:
       - "4566:4566"
     volumes:
       - ./localstack:/docker-entrypoint-initaws.d
-      - localstack_tmp:/tmp/localstack-tmp
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
       interval: 5s
@@ -77,23 +72,16 @@ services:
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
     command: >
-      /bin/sh -c '
-      echo "Waiting for LocalStack to be ready...";
-      while ! curl -s http://localstack:4566/_localstack/health | grep -q "\"s3\":\"running\""; do
-        echo "Waiting for LocalStack S3...";
+      /bin/sh -c "
+      echo 'Waiting for LocalStack to be ready...' &&
+      while ! curl -s http://localstack:4566/_localstack/health | grep -q '\"s3\":\"running\"'; do
+        echo 'Waiting for LocalStack S3...' &&
         sleep 2;
-      done;
-      echo "LocalStack S3 is ready. Creating bucket...";
-      aws --endpoint-url=http://localstack:4566 s3 mb s3://image-gallery-local;
-      aws --endpoint-url=http://localstack:4566 s3api put-bucket-acl --bucket image-gallery-local --acl public-read;
-      echo "LocalStack initialized with S3 bucket";
-      '
+      done &&
+      echo 'LocalStack S3 is ready. Creating bucket...' &&
+      aws --endpoint-url=http://localstack:4566 s3 mb s3://image-gallery-local &&
+      aws --endpoint-url=http://localstack:4566 s3api put-bucket-acl --bucket image-gallery-local --acl public-read &&
+      echo 'LocalStack initialized with S3 bucket'
+      "
     depends_on:
-      localstack:
-        condition: service_healthy
-
-volumes:
-  postgres_data:
-    driver: local
-  localstack_tmp:
-    driver: local
+      - localstack
