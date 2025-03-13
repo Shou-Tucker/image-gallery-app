@@ -37,18 +37,15 @@
 git clone https://github.com/Shou-Tucker/image-gallery-app.git
 cd image-gallery-app
 
+# 環境変数の設定
+cp app/.env.example app/.env.local
+
 # Dockerコンテナの起動
 docker-compose up -d
 
-# Next.jsアプリケーションの起動
-cd app
-npm install
-npm run dev
+# アプリケーションにアクセス
+open http://localhost:3000
 ```
-
-### 環境変数の設定
-
-`.env.example`ファイルをコピーして`.env.local`を作成し、必要な環境変数を設定してください。
 
 ### Terraformによるデプロイ
 
@@ -56,10 +53,34 @@ npm run dev
 cd terraform
 
 # 開発環境へのデプロイ
-terraform workspace select dev
+cp dev.tfvars.example dev.tfvars
+# 必要な設定を編集
+terraform workspace new dev
+terraform init
 terraform apply -var-file=dev.tfvars
 
 # 本番環境へのデプロイ
-terraform workspace select prod
+cp prod.tfvars.example prod.tfvars
+# 必要な設定を編集
+terraform workspace new prod
+terraform init
 terraform apply -var-file=prod.tfvars
+```
+
+## プロジェクト構造
+
+```
+.
+├── app/                  # Next.jsアプリケーション
+│   ├── components/       # UIコンポーネント
+│   ├── lib/              # ユーティリティ関数
+│   ├── pages/            # ページコンポーネント
+│   │   ├── api/          # APIエンドポイント
+│   │   └── images/       # 画像関連ページ
+│   ├── prisma/           # データベース設定
+│   └── styles/           # CSSスタイル
+├── db/                   # データベース初期化スクリプト
+├── docker-compose.yml    # Docker設定
+├── localstack/           # ローカルAWS環境設定
+└── terraform/            # インフラ設定
 ```
