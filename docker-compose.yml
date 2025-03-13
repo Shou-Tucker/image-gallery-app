@@ -41,11 +41,12 @@ services:
       - DEBUG=1
       - AWS_DEFAULT_REGION=us-east-1
       - EDGE_PORT=4566
+      - TMPDIR=/tmp/localstack-tmp # 新しいテンポラリディレクトリを指定
     ports:
       - "4566:4566"
     volumes:
       - ./localstack:/docker-entrypoint-initaws.d
-      - ./tmp/localstack:/tmp/localstack
+      - localstack_tmp:/tmp/localstack-tmp # 新しいテンポラリディレクトリをマウント
 
   # 初期化用のコンテナ (LocalStackにS3バケットを作成)
   init-localstack:
@@ -67,3 +68,4 @@ services:
 
 volumes:
   postgres_data:
+  localstack_tmp: # 新しいボリュームを追加
